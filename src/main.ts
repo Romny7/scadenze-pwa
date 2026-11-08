@@ -1,5 +1,6 @@
 import { add, getAll, remove } from './db';
 import { drawCalendar } from './calendar';
+import { lookup } from './products';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const logEl = $('log');
@@ -103,6 +104,34 @@ $('go').addEventListener('click', async () => {
     f.kind.value = String(c.kind);
   }
 });
+
+// ---- scanner codice a barre ----
+let scanAbort: AbortController | undefined;
+$('scanCancel').onclick = () => { scanAbort?.abort(); $('scan').hidden = true; };
+$('scanBtn').onclick = async () => {
+  f.err.textContent = '';
+  $('scan').hidden = false;
+  $('scanMsg').textContent = 'Inquadra il codice a barre…';
+  scanAbort = new AbortController();
+  try {
+    const { scan } = await import('./scanner');
+    const digits = await scan($('video') as HTMLVideoElement, scanAbort.signal);
+    $('scan').hidden = true;
+    const r = await call({ type: 'gtin', gtin: digits });
+    if (!r.gtin14) { f.err.textContent = `Codice non valido: ${digits}`; return; }
+    f.gtin.value = digits;
+    try {
+      const name = await lookup(digits, r.gtin14);
+      if (!name) f.err.textContent = 'Prodotto non trovato: scrivi il nome a mano.';
+      else if (!f.name.value.trim()) f.name.value = name;
+    } catch (e) { log(`OFF: ${e}`); f.err.textContent = 'Ricerca prodotto non riuscita: scrivi il nome a mano.'; }
+  } catch (e) {
+    if ((e as DOMException).name === 'AbortError') return;
+    $('scanMsg').textContent = `Fotocamera non disponibile: ${e}`;
+    log(`SCAN: ${e}`);
+  }
+};
+setTimeout(() => { import('./scanner').catch(() => {}); }, 3000);   // pre-carica il .wasm in cache
 
 // ---- tab Lista / Calendario ----
 const show = (cal: boolean) => { $('vList').hidden = cal; $('vCal').hidden = !cal; };

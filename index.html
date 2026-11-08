@@ -26,6 +26,7 @@
     .day.today { outline: 2px solid #2e7d32; } .day.sel { background: #2e7d3244; } .detail { margin-top: 8px; }
     .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 1px; }
     .dot.s0 { background: #2e7d32; } .dot.s1 { background: #f9a825; } .dot.s2 { background: #ef6c00; } .dot.s3 { background: #888; } .dot.s4 { background: #c62828; }
+    #video { width: 100%; max-height: 50vh; background: #000; }
     pre { background: #8882; padding: 8px; overflow-x: auto; white-space: pre-wrap; font-size: .8rem; }
   </style>
 </head>
@@ -37,6 +38,7 @@
   <form id="f">
     <input id="name" required placeholder="Nome prodotto" />
     <input id="gtin" inputmode="numeric" placeholder="Codice a barre (facoltativo)" />
+    <button type="button" id="scanBtn">📷 Scansiona codice a barre</button>
     <input id="date" type="date" required />
     <label><input id="monthOnly" type="checkbox" /> Solo mese/anno (vale fine mese)</label>
     <select id="kind">
@@ -47,6 +49,12 @@
     <button type="submit">Salva</button>
     <div id="err" class="ko"></div>
   </form>
+
+  <div id="scan" hidden>
+    <video id="video" playsinline muted></video>
+    <div id="scanMsg"></div>
+    <button id="scanCancel">Chiudi fotocamera</button>
+  </div>
 
   <div class="tabs"><button id="tList">Lista</button><button id="tCal">Calendario</button></div>
   <div id="vList"><ul id="list"></ul></div>
