@@ -16,16 +16,42 @@
     button { font: inherit; padding: 10px 16px; margin-top: 8px; }
     .badges span { display: inline-block; margin: 2px 6px 2px 0; padding: 2px 8px; border-radius: 10px; background: #8883; font-size: .8rem; }
     .ok { background: #2e7d3255 !important; } .ko { background: #c6282855 !important; }
+    form > * { display: block; width: 100%; box-sizing: border-box; margin-top: 8px; font: inherit; padding: 8px; }
+    form label { padding: 0; } form label input { display: inline; width: auto; }
+    ul { list-style: none; padding: 0; } li { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #8884; }
+    li > div { flex: 1; } li span { padding: 2px 8px; border-radius: 10px; font-size: .8rem; } li button { margin: 0; padding: 4px 10px; }
+    .s0 { background: #2e7d3255; } .s1 { background: #f9a82566; } .s2 { background: #ef6c0066; } .s3 { background: #8886; } .s4 { background: #c6282866; }
     pre { background: #8882; padding: 8px; overflow-x: auto; white-space: pre-wrap; font-size: .8rem; }
   </style>
 </head>
 <body>
-  <h1>Scadenze · test core</h1>
+  <h1>Scadenze</h1>
   <div class="badges" id="badges"></div>
-  <textarea id="text" rows="3">Da consumarsi preferibilmente entro il 08/2027</textarea>
-  <button id="go">Analizza</button>
-  <h3>Risultato</h3><pre id="out">—</pre>
-  <h3>Log</h3><pre id="log"></pre>
+
+  <h3>Aggiungi prodotto</h3>
+  <form id="f">
+    <input id="name" required placeholder="Nome prodotto" />
+    <input id="gtin" inputmode="numeric" placeholder="Codice a barre (facoltativo)" />
+    <input id="date" type="date" required />
+    <label><input id="monthOnly" type="checkbox" /> Solo mese/anno (vale fine mese)</label>
+    <select id="kind">
+      <option value="0">Tipo: non so</option>
+      <option value="1">Da consumarsi entro</option>
+      <option value="2">Preferibilmente entro (TMC)</option>
+    </select>
+    <button type="submit">Salva</button>
+    <div id="err" class="ko"></div>
+  </form>
+
+  <h3>In arrivo</h3>
+  <ul id="list"></ul>
+
+  <details><summary>Strumento di lettura data (test)</summary>
+    <textarea id="text" rows="3">Da consumarsi preferibilmente entro il 08/2027</textarea>
+    <button id="go">Analizza e precompila</button>
+    <pre id="out">—</pre>
+    <pre id="log"></pre>
+  </details>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
