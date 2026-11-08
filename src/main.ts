@@ -1,4 +1,5 @@
 import { add, getAll, remove } from './db';
+import { drawCalendar } from './calendar';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const logEl = $('log');
@@ -46,8 +47,9 @@ async function render() {
   const items = (await getAll()).sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d);
   const list = $('list');
   list.replaceChildren();
+  const results = items.length ? (await call({ type: 'status', items })).results : [];
+  drawCalendar($('cal'), items, results);
   if (!items.length) { list.textContent = 'Nessun prodotto.'; return; }
-  const { results } = await call({ type: 'status', items });
   items.forEach((it, i) => {
     const r = results[i];
     const li = document.createElement('li');
@@ -101,5 +103,10 @@ $('go').addEventListener('click', async () => {
     f.kind.value = String(c.kind);
   }
 });
+
+// ---- tab Lista / Calendario ----
+const show = (cal: boolean) => { $('vList').hidden = cal; $('vCal').hidden = !cal; };
+$('tList').onclick = () => show(false);
+$('tCal').onclick = () => show(true);
 
 render().catch((e) => log(`DB: ${e}`));
