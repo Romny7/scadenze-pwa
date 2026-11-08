@@ -1,0 +1,4 @@
+{ "name": "Scadenze", "short_name": "Scadenze", "start_url": "./", "scope": "./", "display": "standalone",
+  "background_color": "#2e7d32", "theme_color": "#2e7d32",
+  "icons": [ { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+             { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" } ] }

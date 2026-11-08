@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Scadenze</title>
+  <meta name="theme-color" content="#2e7d32" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Scadenze" />
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); max-width: 640px; margin-inline: auto; }
+    h1 { font-size: 1.3rem; } textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 8px; }
+    button { font: inherit; padding: 10px 16px; margin-top: 8px; }
+    .badges span { display: inline-block; margin: 2px 6px 2px 0; padding: 2px 8px; border-radius: 10px; background: #8883; font-size: .8rem; }
+    .ok { background: #2e7d3255 !important; } .ko { background: #c6282855 !important; }
+    pre { background: #8882; padding: 8px; overflow-x: auto; white-space: pre-wrap; font-size: .8rem; }
+  </style>
+</head>
+<body>
+  <h1>Scadenze · test core</h1>
+  <div class="badges" id="badges"></div>
+  <textarea id="text" rows="3">Da consumarsi preferibilmente entro il 08/2027</textarea>
+  <button id="go">Analizza</button>
+  <h3>Risultato</h3><pre id="out">—</pre>
+  <h3>Log</h3><pre id="log"></pre>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
