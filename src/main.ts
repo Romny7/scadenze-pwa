@@ -107,16 +107,18 @@ $('go').addEventListener('click', async () => {
 
 // ---- scanner codice a barre ----
 let scanAbort: AbortController | undefined;
-$('scanCancel').onclick = () => { scanAbort?.abort(); $('scan').hidden = true; };
+const closeScan = () => { scanAbort?.abort(); $('scan').hidden = true; document.body.classList.remove('scanning'); };
+$('scanCancel').onclick = closeScan;
 $('scanBtn').onclick = async () => {
   f.err.textContent = '';
   $('scan').hidden = false;
-  $('scanMsg').textContent = 'Inquadra il codice a barre…';
+  document.body.classList.add('scanning');
+  $('scanMsg').textContent = 'Allinea il codice al rettangolo';
   scanAbort = new AbortController();
   try {
     const { scan } = await import('./scanner');
-    const digits = await scan($('video') as HTMLVideoElement, scanAbort.signal);
-    $('scan').hidden = true;
+    const digits = await scan($('video') as HTMLVideoElement, $('guide'), scanAbort.signal);
+    closeScan();
     const r = await call({ type: 'gtin', gtin: digits });
     if (!r.gtin14) { f.err.textContent = `Codice non valido: ${digits}`; return; }
     f.gtin.value = digits;

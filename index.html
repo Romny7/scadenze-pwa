@@ -26,7 +26,14 @@
     .day.today { outline: 2px solid #2e7d32; } .day.sel { background: #2e7d3244; } .detail { margin-top: 8px; }
     .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 1px; }
     .dot.s0 { background: #2e7d32; } .dot.s1 { background: #f9a825; } .dot.s2 { background: #ef6c00; } .dot.s3 { background: #888; } .dot.s4 { background: #c62828; }
-    #video { width: 100%; max-height: 50vh; background: #000; }
+    body.scanning { overflow: hidden; }
+    #scan { position: fixed; inset: 0; z-index: 10; background: #000; color: #fff; overscroll-behavior: none; touch-action: none; }
+    #scan[hidden] { display: none; }
+    #video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    #guide { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(86%, 560px); aspect-ratio: 2 / 1; max-height: 60%;
+             border: 2px dashed #fff; border-radius: 10px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.55); }
+    #scanCancel { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; margin: 0; }
+    #scanMsg { position: absolute; left: 0; right: 0; bottom: max(24px, env(safe-area-inset-bottom)); text-align: center; padding: 0 16px; }
     pre { background: #8882; padding: 8px; overflow-x: auto; white-space: pre-wrap; font-size: .8rem; }
   </style>
 </head>
@@ -52,8 +59,9 @@
 
   <div id="scan" hidden>
     <video id="video" playsinline muted></video>
-    <div id="scanMsg"></div>
-    <button id="scanCancel">Chiudi fotocamera</button>
+    <div id="guide"></div>
+    <button id="scanCancel">✕ Chiudi</button>
+    <div id="scanMsg">Allinea il codice al rettangolo</div>
   </div>
 
   <div class="tabs"><button id="tList">Lista</button><button id="tCal">Calendario</button></div>
