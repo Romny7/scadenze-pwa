@@ -8,6 +8,7 @@ self.onmessage = async (e: MessageEvent<any>) => {
   try {
     const core = await corePromise;
     const [ty, tm, td] = m.today;
+    const K = [core.ExpiryKind.Unknown, core.ExpiryKind.UseBy, core.ExpiryKind.BestBefore];
     if (m.type === 'parse') {
       const t0 = performance.now();
       const vec = core.parseDates(m.text, ty, tm, td);
@@ -18,12 +19,19 @@ self.onmessage = async (e: MessageEvent<any>) => {
     } else if (m.type === 'gtin') {
       postMessage({ id: m.id, ok: true, gtin14: core.normalizeGtin14(m.gtin) });
     } else if (m.type === 'status') {
-      const K = [core.ExpiryKind.Unknown, core.ExpiryKind.UseBy, core.ExpiryKind.BestBefore];
       const results = m.items.map((it: any) => ({
         status: core.expiryStatus(K[it.kind], it.y, it.m, it.d, ty, tm, td).value,
         days: core.daysRemaining(it.y, it.m, it.d, ty, tm, td),
       }));
       postMessage({ id: m.id, ok: true, results });
+    } else if (m.type === 'alerts') {
+      const alerts: object[] = [];
+      m.items.forEach((it: any, idx: number) => {
+        const v = core.alertSchedule(K[it.kind], it.y, it.m, it.d, ty, tm, td);
+        for (let i = 0; i < v.size(); i++) { const a = v.get(i); alerts.push({ idx, y: a.year, m: a.month, d: a.day, before: a.daysBefore }); }
+        v.delete();
+      });
+      postMessage({ id: m.id, ok: true, alerts });
     }
   } catch (err) {
     postMessage({ id: m.id, ok: false, error: String(err) });

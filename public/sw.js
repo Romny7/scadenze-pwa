@@ -1,5 +1,5 @@
 // Service worker minimale: stale-while-revalidate sulle risorse same-origin.
-const CACHE = 'scadenze-v1';
+const CACHE = 'scadenze-v2';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(
   caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
@@ -12,4 +12,16 @@ self.addEventListener('fetch', (e) => {
     const net = fetch(req).then((r) => { if (r.ok) cache.put(req, r.clone()); return r; }).catch(() => hit);
     return hit || net;
   }));
+});
+
+// ---- Web Push ----
+self.addEventListener('push', (e) => {
+  let d = { title: 'Scadenze', body: '' };
+  try { d = e.data.json(); } catch { /* payload non JSON */ }
+  e.waitUntil(self.registration.showNotification(d.title, { body: d.body, icon: 'icon-192.png' }));
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    .then((cs) => (cs.length ? cs[0].focus() : self.clients.openWindow('./'))));
 });

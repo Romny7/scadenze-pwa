@@ -1,6 +1,8 @@
-import { add, getAll, remove } from './db';
+import { add, getAll, remove, type Entry } from './db';
 import { drawCalendar } from './calendar';
 import { lookup } from './products';
+import { pushConfigured } from './config';
+import { currentSub, enablePush, pushSupported, sendTest, syncAlerts } from './push';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const logEl = $('log');
@@ -46,6 +48,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 async function render() {
   const items = (await getAll()).sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d);
+  syncPush(items).catch((e) => log(`SYNC: ${e}`));
   const list = $('list');
   list.replaceChildren();
   const results = items.length ? (await call({ type: 'status', items })).results : [];
@@ -104,6 +107,55 @@ $('go').addEventListener('click', async () => {
     f.kind.value = String(c.kind);
   }
 });
+
+// ---- notifiche push ----
+// Un avviso al giorno alle 09:00 locali, con i prodotti raggruppati per "scade oggi / domani / tra N giorni".
+async function buildAlerts(items: Entry[]) {
+  if (!items.length) return [];
+  const { alerts } = await call({ type: 'alerts', items });
+  const byDate = new Map<string, { at: number; lines: Map<number, string[]> }>();
+  for (const a of alerts) {
+    const at = new Date(a.y, a.m - 1, a.d, 9, 0, 0).getTime();
+    if (at <= Date.now()) continue;
+    const key = `${a.y}-${a.m}-${a.d}`;
+    const g = byDate.get(key) ?? { at, lines: new Map<number, string[]>() };
+    g.lines.set(a.before, [...(g.lines.get(a.before) ?? []), items[a.idx].name]);
+    byDate.set(key, g);
+  }
+  const label = (n: number) => (n === 0 ? 'Scade oggi' : n === 1 ? 'Scade domani' : `Scade tra ${n} giorni`);
+  return [...byDate.values()].map((g) => ({
+    at: g.at, title: 'Scadenze',
+    body: [...g.lines].sort((x, y) => x[0] - y[0]).map(([n, names]) => `${label(n)}: ${names.join(', ')}`).join(' · '),
+  }));
+}
+async function syncPush(items: Entry[], extra: { at: number; title: string; body: string }[] = []) {
+  if (!pushSupported() || !pushConfigured()) return;
+  const sub = await currentSub();
+  if (sub) await syncAlerts(sub, [...(await buildAlerts(items)), ...extra]);
+}
+if (!pushSupported()) badge('push', 'Push: aggiungi l\'app alla Home', false);
+else if (!pushConfigured()) badge('push', 'Push: server non configurato', false);
+else currentSub().then((s) => badge('push', s ? 'Push: attive' : 'Push: spente', !!s));
+
+$('pushBtn').onclick = async () => {
+  try {
+    if (!pushSupported()) throw new Error('Su iPhone serve l\'app aggiunta alla schermata Home');
+    if (!pushConfigured()) throw new Error('Compila src/config.ts');
+    await enablePush();
+    badge('push', 'Push: attive', true);
+    await syncPush(await getAll());
+  } catch (e) { badge('push', 'Push: errore', false); log(`PUSH: ${e}`); $('out').textContent = `Push: ${e}`; }
+};
+$('pushTest').onclick = async () => {
+  try { const sub = await currentSub(); if (!sub) throw new Error('Attiva prima le notifiche'); await sendTest(sub); log('prova inviata'); }
+  catch (e) { log(`PUSH: ${e}`); $('out').textContent = `Push: ${e}`; }
+};
+$('pushSched').onclick = async () => {
+  try {
+    await syncPush(await getAll(), [{ at: Date.now() + 5 * 60_000, title: 'Test programmato', body: 'Se leggi questo, il cron funziona.' }]);
+    log('test programmato tra 5 minuti');
+  } catch (e) { log(`PUSH: ${e}`); }
+};
 
 // ---- scanner codice a barre ----
 let scanAbort: AbortController | undefined;
