@@ -5,12 +5,11 @@ export type Hit = { c: Cand; recipe: string };   // recipe = famiglia di pretrat
 const dayKey = (c: Cand) => `${c.year}-${c.month}-${c.day}`;
 const monthKey = (c: Cand) => `${c.year}-${c.month}`;
 
-// Regole:
-//  - un risultato vale solo se confermato da 2+ ricette DIVERSE: la stessa ricetta su frame quasi identici
-//    sbaglia sempre allo stesso modo (es. 3 letto 2). In ultima istanza (>= 12 tentativi) bastano 4 letture.
-//  - giorno completo: 2 letture; mese/anno: 3, e si aspetta se c'e' un giorno compatibile in arrivo.
+// Regole (la velocita' conta: ogni tentativo costa ~0.4 s):
+//  - giorno completo: 2 letture uguali; mese/anno: 3, e si aspetta se c'e' un giorno compatibile in arrivo.
 //  - giorno == mese (07/07): sospetto (spesso e' un "07/2027" letto male): servono 3 letture, e se il
 //    mese/anno ha almeno altrettante letture vince il mese/anno.
+//  Non si pretende l'accordo fra ricette diverse: e' troppo lento (di solito ne legge una sola).
 export function decide(recent: (Hit | null)[], attempts: number): Cand | null {
   const days = new Map<string, Hit[]>(), months = new Map<string, Hit[]>();
   for (const h of recent) {
@@ -19,8 +18,8 @@ export function decide(recent: (Hit | null)[], attempts: number): Cand | null {
     const k = h.c.precision === 0 ? dayKey(h.c) : monthKey(h.c);
     m.set(k, [...(m.get(k) ?? []), h]);
   }
-  const enough = (v: Hit[], need: number) =>
-    v.length >= need && (new Set(v.map((h) => h.recipe)).size >= 2 || (v.length >= 4 && attempts >= 12));
+  void attempts;   // parametro mantenuto per compatibilita' con il chiamante
+  const enough = (v: Hit[], need: number) => v.length >= need;
 
   const dayWinner = [...days.values()].filter((v) => {
     const c = v[0].c, suspicious = c.day === c.month;
