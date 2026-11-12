@@ -65,11 +65,16 @@ export function pad(g: Uint8Array, w: number, h: number, p: number) {
   return { g: out, w: nw, h: nh };
 }
 
-export type Recipe = { name: string; width: number; prep: (g: Uint8Array, w: number, h: number) => Uint8Array };
+export type Recipe = { name: string; width: number; psm?: '6' | '11'; prep: (g: Uint8Array, w: number, h: number) => Uint8Array };
 
-// Ognuna copre casi diversi (verificato su 5 foto reali: nessuna da sola le legge tutte, insieme si').
+const invert = (g: Uint8Array) => g.map((v) => 255 - v);
+const dotsPrep = (g: Uint8Array, w: number, h: number) => adaptiveDark(blur(g, w, h, 2), w, h, Math.max(15, (h / 6) | 0), 8);
+
+// Ognuna copre casi diversi (verificato su foto reali: nessuna da sola le legge tutte, insieme si').
 export const RECIPES: Recipe[] = [
-  { name: 'flat', width: 600, prep: (g, w, h) => flat(blur(g, w, h, 1), w, h, Math.max(25, (h / 3) | 0), 6) },   // testo grigio sbiadito, carta stropicciata
-  { name: 'gray', width: 600, prep: (g) => stretch(g) },                                                            // testo chiaro su fondo scuro, etichette pulite
-  { name: 'dots', width: 400, prep: (g, w, h) => adaptiveDark(blur(g, w, h, 2), w, h, Math.max(15, (h / 6) | 0), 8) }, // stampa a punti, inkjet a righe
+  { name: 'flat', width: 600, prep: (g, w, h) => flat(blur(g, w, h, 1), w, h, Math.max(25, (h / 3) | 0), 6) },      // grigio sbiadito, carta stropicciata, cartone
+  { name: 'gray', width: 600, prep: (g) => stretch(g) },                                                               // etichette pulite, chiaro su scuro inciso
+  { name: 'dots', width: 400, prep: dotsPrep },                                                                          // stampa a punti, inkjet a righe
+  { name: 'dots6', width: 400, psm: '6', prep: dotsPrep },                                                              // idem in modalita' blocco di testo (sfondi retinati, es. yogurt)
+  { name: 'inv', width: 600, prep: (g) => stretch(invert(g)) },                                                          // bianco su nero (bottiglie)
 ];

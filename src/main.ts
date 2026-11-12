@@ -201,7 +201,6 @@ $('ocrBtn').onclick = async () => {
     closeScan();
     f.date.value = `${r.year}-${pad(r.month)}-${pad(r.day)}`;
     f.month.checked = r.precision === 1;
-    f.kind.value = String(r.kind);
     f.err.textContent = `Letto ${r.precision === 1 ? pad(r.month) + '/' + r.year : pad(r.day) + '/' + pad(r.month) + '/' + r.year}: controlla e salva.`;
   } catch (e) {
     if ((e as DOMException).name === 'AbortError') return;
