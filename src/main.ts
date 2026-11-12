@@ -187,6 +187,30 @@ $('scanBtn').onclick = async () => {
 };
 setTimeout(() => { import('./scanner').catch(() => {}); }, 3000);   // pre-carica il .wasm in cache
 
+// ---- lettura data di scadenza (OCR) ----
+$('ocrBtn').onclick = async () => {
+  f.err.textContent = '';
+  $('scan').hidden = false;
+  document.body.classList.add('scanning');
+  $('scanMsg').textContent = 'Carico il motore di lettura…';
+  scanAbort = new AbortController();
+  try {
+    const { scanDate } = await import('./ocr');
+    const r = await scanDate($('video') as HTMLVideoElement, $('guide'), scanAbort.signal,
+      async (text) => (await call({ type: 'parse', text })).candidates ?? [], (m) => { $('scanMsg').textContent = m; });
+    closeScan();
+    f.date.value = `${r.year}-${pad(r.month)}-${pad(r.day)}`;
+    f.month.checked = r.precision === 1;
+    f.kind.value = String(r.kind);
+    f.err.textContent = `Letto ${r.precision === 1 ? pad(r.month) + '/' + r.year : pad(r.day) + '/' + pad(r.month) + '/' + r.year}: controlla e salva.`;
+  } catch (e) {
+    if ((e as DOMException).name === 'AbortError') return;
+    $('scanMsg').textContent = `Lettura non riuscita: ${e}`;
+    log(`OCR: ${e}`);
+  }
+};
+setTimeout(() => { import('./ocr').then((m) => m.warm()).catch(() => {}); }, 8000);   // pre-carica i file OCR in cache
+
 // ---- tab Lista / Calendario ----
 const show = (cal: boolean) => { $('vList').hidden = cal; $('vCal').hidden = !cal; };
 $('tList').onclick = () => show(false);
