@@ -1,9 +1,11 @@
 import { createWorker, PSM, type Worker } from 'tesseract.js';
 import { RECIPES, pad, toGray } from './ocrPre';
 import { normalizeOcr } from './ocrText';
+import { decide, type Hit } from './ocrConsensus';
 
 export type DateHit = { year: number; month: number; day: number; precision: number; confidence: number };
 type Cand = DateHit & { begin: number; end: number };
+const family = (name: string) => name.replace(/6$/, '');   // 'dots6' condivide gli errori di 'dots'
 
 // File serviti dal nostro sito (copiati in public/ocr da scripts/copy-ocr.mjs): niente CDN, funziona offline.
 const base = new URL('ocr/', document.baseURI).href;
@@ -33,28 +35,6 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) dispo
 export const warm = () => Promise.all(ASSETS.map((u) => fetch(u).catch(() => {})));
 
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
-const dayKey = (c: Cand) => `${c.year}-${c.month}-${c.day}`;
-
-// Consenso: un giorno completo vale con 2 letture uguali; mese/anno ne richiede 3 e aspetta se in
-// giro c'e' un giorno compatibile (evita di fermarsi su "MM/AAAA" quando la data e' "GG/MM/AAAA").
-function decide(recent: (Cand | null)[]): Cand | null {
-  const hits = recent.filter((c): c is Cand => !!c);
-  const days = new Map<string, Cand[]>(), months = new Map<string, Cand[]>();
-  for (const c of hits) {
-    const m = c.precision === 0 ? days : months;
-    const k = c.precision === 0 ? dayKey(c) : `${c.year}-${c.month}`;
-    m.set(k, [...(m.get(k) ?? []), c]);
-  }
-  const bestDay = [...days.values()].filter((v) => v.length >= 2).sort((a, b) => b.length - a.length)[0];
-  if (bestDay) return bestDay[0];
-  for (const v of months.values()) {
-    if (v.length < 3) continue;
-    const dayPending = [...days.values()].some((d) => d[0].year === v[0].year && d[0].month === v[0].month);
-    if (!dayPending) return v[0];
-  }
-  return null;
-}
-
 // Legge la data dentro il rettangolo `guide`. Alterna le ricette di pretrattamento (e ripete piu' spesso
 // quella che ha gia' dato un risultato), poi decide per consenso.
 export async function scanDate(
@@ -72,7 +52,7 @@ export async function scanDate(
     video.muted = true; video.srcObject = stream; await video.play();
     const src = document.createElement('canvas'), dst = document.createElement('canvas');
     const sctx = src.getContext('2d', { willReadFrequently: true })!, dctx = dst.getContext('2d')!;
-    const recent: (Cand | null)[] = [];
+    const recent: (Hit | null)[] = [];
     let n = 0, cycle = 0, lucky = -1;
 
     // Se il motore si blocca (memoria, app in background) lo ricrea e riprova una volta.
@@ -124,8 +104,8 @@ export async function scanDate(
       if (signal.aborted) break;
       const hit = (await parse(normalizeOcr(data.text, new Date().getFullYear()))).find((c) => c.confidence >= 0.5) ?? null;
       if (hit) lucky = ri;
-      recent.push(hit); if (recent.length > 8) recent.shift();
-      const done = decide(recent);
+      recent.push(hit ? { c: hit, recipe: family(recipe.name) } : null); if (recent.length > 10) recent.shift();
+      const done = decide(recent, n);
       if (done) return { year: done.year, month: done.month, day: done.day, precision: done.precision, confidence: done.confidence };
       onStatus(hit
         ? `Rilevata ${hit.precision === 1 ? '' : String(hit.day).padStart(2, '0') + '/'}${String(hit.month).padStart(2, '0')}/${hit.year}: tieni fermo…`
