@@ -34,6 +34,13 @@ export function adaptiveDark(g: Uint8Array, w: number, h: number, win: number, T
   return out;
 }
 
+// Testo chiaro su fondo scuro/dorato -> nero; soglia adattiva locale.
+export function adaptiveLight(g: Uint8Array, w: number, h: number, win: number, T: number): Uint8Array {
+  const I = integral(g, w, h), out = new Uint8Array(w * h), r = win >> 1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out[y * w + x] = g[y * w + x] > boxMean(I, w, h, x, y, r) + T ? 0 : 255;
+  return out;
+}
+
 // Normalizza il contrasto sui percentili 2-98.
 export function stretch(g: Uint8Array): Uint8Array {
   const hist = new Uint32Array(256);
@@ -67,7 +74,6 @@ export function pad(g: Uint8Array, w: number, h: number, p: number) {
 
 export type Recipe = { name: string; width: number; psm?: '6' | '11'; prep: (g: Uint8Array, w: number, h: number) => Uint8Array };
 
-const invert = (g: Uint8Array) => g.map((v) => 255 - v);
 const dotsPrep = (g: Uint8Array, w: number, h: number) => adaptiveDark(blur(g, w, h, 2), w, h, Math.max(15, (h / 6) | 0), 8);
 
 // Ognuna copre casi diversi (verificato su foto reali: nessuna da sola le legge tutte, insieme si').
@@ -76,5 +82,5 @@ export const RECIPES: Recipe[] = [
   { name: 'gray', width: 600, prep: (g) => stretch(g) },                                                               // etichette pulite, chiaro su scuro inciso
   { name: 'dots', width: 400, prep: dotsPrep },                                                                          // stampa a punti, inkjet a righe
   { name: 'dots6', width: 400, psm: '6', prep: dotsPrep },                                                              // idem in modalita' blocco di testo (sfondi retinati, es. yogurt)
-  { name: 'inv', width: 600, prep: (g) => stretch(invert(g)) },                                                          // bianco su nero (bottiglie)
+  { name: 'light', width: 600, prep: (g, w, h) => adaptiveLight(blur(g, w, h, 1), w, h, Math.max(15, (h / 6) | 0), 6) },  // bianco su oro/scuro (Lindt, bottiglie)
 ];
